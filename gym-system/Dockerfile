@@ -1,12 +1,16 @@
 FROM php:8.2-apache
 
-# Install system dependencies and PostgreSQL drivers
+# Install system dependencies, PostgreSQL drivers, and GD for image processing
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     zip \
     unzip \
     git \
-    && docker-php-ext-install pdo pdo_pgsql
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_pgsql gd
 
 # Enable Apache mod_rewrite for Laravel routing
 RUN a2enmod rewrite
