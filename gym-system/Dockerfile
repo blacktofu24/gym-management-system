@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# Install system dependencies, PostgreSQL drivers, and GD for image processing
+# Install dependencies, Node.js (for Vite), and PHP extensions
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     zip \
@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
+    curl \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_pgsql gd
 
@@ -32,11 +35,16 @@ COPY . .
 # Install Laravel packages
 RUN composer install --no-dev --optimize-autoloader
 
-# Set proper folder permissions for Laravel
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Install Node dependencies and build frontend assets with Vite
+RUN npm install
+RUN npm run build
 
-# Expose port 80 so Render can route traffic
+# Set proper folder permissions for Laravel
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Expose port 80
 EXPOSE 80
 
 # Run caching, migrations, and start the web server
-CMD php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan migrate --force && apache2-foreground
+CMD php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan migrate --force && apache2-foregrounds
